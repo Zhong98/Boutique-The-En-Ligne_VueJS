@@ -19,10 +19,12 @@
           <HomeRecommend v-if="item.type=='recommend'"
                          :recommendList="item.data"
           ></HomeRecommend>
+          <TeaAd v-if="item.type=='ad'"
+                 :tgy="item.data"
+          ></TeaAd>
           <GuessYouLike v-if="item.type=='like'"
                         :productList="item.data"
           ></GuessYouLike>
-          <TeaAd v-if="item.type=='ad'"></TeaAd>
         </div>
       </div>
     </section>
@@ -31,7 +33,6 @@
 </template>
 
 <script>
-
 import TabBar from "@/components/common/Tabbar";
 import MyHeader from "@/components/home/Header";
 import HomeSwiper from "@/components/home/Swiper";
@@ -41,6 +42,9 @@ import GuessYouLike from "@/components/home/Like"
 import TeaAd from "@/components/home/Ad"
 import { FunTabs, FunTabItem } from 'fun-tab';
 import BScroll from "better-scroll";
+import '@/assets/css/common.css'
+
+import http from '@/common/api/request'
 
 export default {
   name: "HomeView",
@@ -50,7 +54,7 @@ export default {
       activeColor:"#b0352f",
       lineWidth:40,
       funTabList:[],
-      newData:[]
+      newData:[],
     }
   },
   components:{
@@ -66,23 +70,32 @@ export default {
   },
   methods:{
     changeTab(index){
-      console.log(index)
+      this.getData(index);
     },
-    async getData(){
-      let url='/api/tabList/0/data/1';
-      let res= await this.Axios.get(url);
-      this.funTabList=Object.freeze(res.data.data.funTabList);
-      this.newData=Object.freeze(res.data.data.data);
+    async getData(index){
+      //Axios二次封装
+      await http.$axios({
+        url:'/api/tabList/'+index+'/data/1'
+      }).then(res=>{
+        this.funTabList=res.funTabList;
+        this.newData=res.data;
+      })
+
+      //数据渲染完之后再添加better-scroll，从而获取正确的高度
+      // eslint-disable-next-line vue/valid-next-tick
+      await this.$nextTick(() => {
+        new BScroll(this.$refs.wrap, {
+          movable: true,
+          click:true,
+          zoom: true
+        })
+      })
+
+
     }
   },
   created() {
-    this.getData();
-  },
-  mounted() {
-    new BScroll(this.$refs.wrap,{
-      movable:true,
-      zoom:true
-    })
+    this.getData(0);
   }
 }
 </script>
@@ -94,6 +107,13 @@ export default {
   flex-direction: column;
   width: 100vw;
   height: 100vh;
+}
+.van-loading{
+  position: fixed !important;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%,-50%);
+  z-index: 3;
 }
 MyHeader{
   height: 1.173rem;

@@ -3,7 +3,7 @@
     <h3 class="name">茶七网</h3>
     <div class="search">
       <i class="iconfont icon-sousuo"></i>
-      <span>搜您喜欢的...</span>
+      <span @click="goSearch">搜您喜欢的...</span>
     </div>
     <div class="assistant">
       <i class="iconfont icon-kefu"></i>
@@ -13,11 +13,16 @@
 
 <script>
 export default {
-  name: "MyHeader"
+  name: "MyHeader",
+  methods:{
+    goSearch(){
+      this.$router.push('/search');
+    }
+  }
 }
 </script>
 
-<style scoped>
+<style scoped lang="scss">
 header{
   display: flex;
   flex-wrap: wrap;
@@ -40,18 +45,19 @@ header{
   background: white;
   color: gray;
   border-radius: 24px;
-}
-.search span{
-  padding-left: .1rem;
-  font-size: .4rem;
+
+  span{
+    padding-left: .1rem;
+    font-size: .4rem;
+  }
 }
 .assistant{
   display: flex;
   align-items: center;
   padding-right: .1rem;
   color: white;
-}
-.assistant i{
-  font-size: .64rem;
+  i{
+    font-size: .64rem;
+  }
 }
 </style>

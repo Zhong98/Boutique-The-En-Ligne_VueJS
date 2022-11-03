@@ -17,26 +17,27 @@ export default {
 }
 </script>
 
-<style scoped>
+<style scoped lang="scss">
   .icons{
     display: flex;
     justify-content: space-around;
     margin: 0.4rem 0;
-  }
-  .icons li{
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
-    width: 1.867rem;
-    height: 2rem;
-  }
-  .icons li img{
-    width: 1rem;
-    height: 1rem;
-  }
-  .icons li span{
-    margin-top: .3rem;
-    font-size: .4rem;
+    li{
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      width: 1.867rem;
+      height: 2rem;
+
+      img{
+        width: 1rem;
+        height: 1rem;
+      }
+      span{
+        margin-top: .3rem;
+        font-size: .4rem;
+      }
+    }
   }
 </style>

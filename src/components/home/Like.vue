@@ -3,9 +3,9 @@
     <ListTitle>猜你喜欢</ListTitle>
     <ul>
       <li v-for="(item,index) in productList"
-      :key="index">
+      :key="index" @click="goDetail(item.name)">
         <div>
-          <img :src="item.imgURL">
+          <img v-lazy="item.imgURL">
         </div>
         <div>{{item.name}}</div>
         <div>
@@ -26,6 +26,17 @@ export default {
   },
   components:{
     ListTitle
+  },
+  methods:{
+    goDetail(productName){
+      //隐式传值
+      this.$router.push({
+        path:'/detail',
+        query:{
+          productName
+        }
+      })
+    }
   }
 }
 </script>

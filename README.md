@@ -1,5 +1,5 @@
 # test
-Application mobile 
+
 ## Project setup
 ```
 npm install

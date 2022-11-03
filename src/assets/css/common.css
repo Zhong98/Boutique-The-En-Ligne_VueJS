@@ -5,3 +5,14 @@
 ul{
     list-style: none;
 }
+input{
+    border: none;
+    outline: none;
+}
+.container {
+    display: flex;
+    flex-direction: column;
+    width: 100vw;
+    height: 100vh;
+    background: #f5f5f5;
+}

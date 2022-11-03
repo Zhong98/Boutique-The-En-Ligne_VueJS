@@ -1,19 +1,16 @@
 <template>
-  <div>
-    <img src="/images/tgy.jpg">
-    <GuessYouLike></GuessYouLike>
+  <div v-for="(item,index) in tgy"
+       :key="index"
+  >
+    <img :src="item.imgURL">
   </div>
 </template>
 
 <script>
-import GuessYouLike from '@/components/home/Like'
 export default {
   name: "TeaAd",
   props:{
-    dhp:Object
-  },
-  components:{
-    GuessYouLike
+    tgy:Array
   }
 }
 </script>

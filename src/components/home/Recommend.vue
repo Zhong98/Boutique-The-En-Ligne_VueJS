@@ -5,7 +5,7 @@
       <li v-for="(item,index) in recommendList"
       :key="index">
         <div>
-          <img :src="item.imgURL">
+          <img v-lazy="item.imgURL">
         </div>
         <div class="info">
           <div class="product">{{item.name}}</div>
