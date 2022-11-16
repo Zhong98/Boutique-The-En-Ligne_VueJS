@@ -44,21 +44,10 @@ export default {
   methods: {
     ...mapMutations(['loginOut']),
     goLogin() {
-      this.$router.push({
-        path: '/login'
-      })
+      this.$router.push('/login')
     },
     goAddress(){
-      //必须登录才能进入地址页
-      if (this.loginStatus){
-        this.$router.push({
-          path: '/address'
-        })
-      }else{
-        this.$router.push({
-          path: '/login'
-        })
-      }
+      this.$router.push('/address')
     }
   }
 }

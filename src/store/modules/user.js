@@ -28,7 +28,9 @@ export default{
             state.loginStatus=false;
             state.token=null;
             state.userInfo={};
-            localStorage.removeItem('teaUserInfo')
+            localStorage.removeItem('teaUserInfo');
+            localStorage.removeItem('goodsList');
+            localStorage.removeItem('order_id');
         }
     },
     actions: {

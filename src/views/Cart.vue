@@ -113,7 +113,7 @@ export default {
           localStorage.setItem('goodsList',JSON.stringify(this.orderList))
           this.product_names='';
           this.orderList.forEach(v=>{
-            this.product_names+=v.product_name+','+v.product_num+';'
+            this.product_names+=v.product_name+' '
           });
           http.$axios({
             url:'/api/createOrder',

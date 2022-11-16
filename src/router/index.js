@@ -128,12 +128,28 @@ const routes = [
     path: '/order',
     name: 'Order',
     component: () => import('@/views/Order.vue')
+  },
+  {
+    path: '/alipay',
+    name: 'AliPay',
+    component: () => import('@/views/PaymentResult.vue')
   }
 ]
 
 const router = createRouter({
   history: createWebHistory(),
   routes
+})
+
+router.beforeEach((to)=>{
+  let nextRoute=['AliPay','Address','Order','Cart','AddressIndex','AddOrEdit'];
+  let userInfo=JSON.parse(localStorage.getItem('teaUserInfo'))
+  //当前进入的页面是不是需要验证的，如果是则需验证登录状态
+  if (nextRoute.indexOf(to.name)>=0){
+    if (!userInfo){
+      router.push('/login')
+    }
+  }
 })
 
 export default router

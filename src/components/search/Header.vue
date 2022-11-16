@@ -8,7 +8,7 @@
         <div>
           <i class="iconfont icon-sousuo"></i>
         </div>
-        <input type="search" placeholder="搜索您喜欢的产品..." v-model="searchVal">
+        <input type="search" placeholder="搜索您喜欢的产品..." v-model="searchVal" ref="myInput">
       </form>
     </div>
     <h3 class="go" @click="goSearch">搜索</h3>
@@ -26,6 +26,10 @@ export default {
     }
   },
   methods:{
+    //失去焦点
+    myTouchMove() {
+      this.$refs.myInput.blur();
+    },
     goBack(){
       this.$router.back();
     },
@@ -53,6 +57,8 @@ export default {
     }
   },
   mounted() {
+    // 键盘监听事件
+    window.addEventListener("touchmove", this.myTouchMove, true);
     if (!localStorage.getItem('searchHistory')){
       localStorage.setItem('searchHistory','[]');
     }else{

@@ -5,6 +5,14 @@ var QcloudSms = require('qcloudsms_js');
 var jwt = require('jsonwebtoken');
 const alipaySdk=require('../alipay');
 const AlipayFormData=require('alipay-sdk/lib/form').default;
+const axios = require('axios');
+
+function getTokenLife(exp) {
+    let getTime = parseInt(  new Date().getTime() / 1000 );
+    if(  getTime - exp  >  60 ){
+        return true;
+    }
+}
 
 /* GET home page. */
 router.get('/', function (req, res, next) {
@@ -257,9 +265,18 @@ router.get('/api/detail/productDetail', function (req, res) {
 
 //登录
 router.post('/api/login', function (req, res) {
-    let tel = req.body.data.userTel; //post从body中取值
+    let userTel = req.body.data.userTel; //post从body中取值
     let pwd = req.body.data.userPwd;
-    let sql = "select * from user where tel='" + tel + "' and pwd='" + pwd + "'"
+
+    //生成token
+    let secret = 'zzx';
+    //token存储的信息
+    let payload = {tel: userTel}
+    let token = jwt.sign(payload, secret,{
+        expiresIn: 60 //60s后token过期
+    });
+
+    let sql = "select * from user where tel='" + userTel + "' and pwd='" + pwd + "'"
     connection.query(sql, function (error, results) {
         if (results.length !== 1) {
             res.send({
@@ -270,13 +287,16 @@ router.post('/api/login', function (req, res) {
                 }
             })
         } else {
-            res.send({
-                code: 0,
-                data: {
-                    success: true,
-                    msg: '登录成功',
-                    userInfo: results[0]
-                }
+            sql=`update user set token='${token}' where tel='${userTel}'` //每次登录成功更新token
+            connection.query(sql,function () {
+                res.send({
+                    code: 0,
+                    data: {
+                        success: true,
+                        msg: '登录成功',
+                        userInfo: results[0]
+                    }
+                })
             })
         }
     })
@@ -338,10 +358,18 @@ router.post('/api/smscode', function (req, res, next) {
 //短信登录
 router.post('/api/addUser', function (req, res, next) {
     let userTel = req.body.data.phone;
+    //生成token
+    let secret = 'zzx';
+    //token存储的信息
+    let payload = {tel: userTel}
+    let token = jwt.sign(payload, secret,{
+        expiresIn: 60 //60s后token过期
+    });
     //用户是否存在
     let sql1 = "select * from user where tel='" + userTel + "'"
     connection.query(sql1, function (error, result) {
         if (result.length > 0) {
+            sql1=`update user set token='${token}' where tel='${userTel}'` //登录成功更新token
             res.send({
                 code: 0,
                 data: {
@@ -352,13 +380,6 @@ router.post('/api/addUser', function (req, res, next) {
             })
         } else {
             //不存在则先添加再查询返回
-
-            let secret = 'zzx';
-            //token存储的信息
-            let payload = {tel: userTel}
-
-            let token = jwt.sign(payload, secret);
-
             let sql2 = "insert into user(tel,pwd,imgURL,nickname,token) values(" + userTel + ",'111111','/touxiang.jpeg','" + userTel + "','" + token + "')";
             connection.query(sql2, function () {
                 connection.query(sql1, function (error, r) {
@@ -383,7 +404,9 @@ router.post('/api/register', function (req, res, next) {
     //生成token
     let secret = 'zzx';
     let payload = {tel: userTel}
-    let token = jwt.sign(payload, secret);
+    let token = jwt.sign(payload, secret,{
+        expiresIn: 60
+    });
 
     let sql1 = "select * from user where tel='" + tel + "'";
     let sql2 = "insert into user(tel,pwd,imgURL,nickname,token) values(" + tel + ",'" + pwd + "','/touxiang.jpeg','" + tel + "','" + token + "')";
@@ -404,7 +427,7 @@ router.post('/api/register', function (req, res, next) {
                         code: 0,
                         data: {
                             success: true,
-                            msg: '密码修改成功,即将跳转到登录页',
+                            msg: '注册成功,即将跳转到登录页',
                             userInfo: r[0]
                         }
                     })
@@ -436,7 +459,7 @@ router.post('/api/recovery', function (req, res, next) {
                     code: 0,
                     data: {
                         success: true,
-                        msg: '注册成功,即将跳转到登录页',
+                        msg: '密码修改成功,即将跳转到登录页',
                     }
                 })
             })
@@ -448,6 +471,15 @@ router.post('/api/recovery', function (req, res, next) {
 router.post('/api/addCart', function (req, response, next) {
     let token = req.body.headers.token
     let tokenObjet = jwt.decode(token);
+    //如果执行，就证明token过期了
+    if(  getTokenLife(tokenObjet.exp) ){
+        response.send({
+            data:{
+                code:1000
+            }
+        })
+    }
+
     let tel = tokenObjet.tel || 11111111111
     let productId = req.body.data.id;
     let sql = `select * from user where tel=${tel}`;
@@ -498,27 +530,33 @@ router.post('/api/addCart', function (req, response, next) {
 //购物车数据渲染
 router.post('/api/getCart', function (req, res, next) {
     let token = req.body.headers.token;
-
-    if (token) {
-        let tokenObjet = jwt.decode(token);
-        let tel = tokenObjet.tel;
-        let sql = `select * from user where tel=${tel}`;
-        connection.query(sql, function (error, results) {
-            if (results.length) {
-
-                sql = `select * from cart where uid=${results[0].id}`;
-                connection.query(sql, function (er, re) {
-                    res.send({
-                        code: 200,
-                        data: {
-                            success: true,
-                            cartInfo: re
-                        }
-                    })
-                })
+    let tokenObjet = jwt.decode(token);
+    //如果执行，就证明token过期了
+    if(  getTokenLife(tokenObjet.exp) ){
+        res.send({
+            data:{
+                code:1000
             }
         })
     }
+    let tel = tokenObjet.tel;
+    let sql = `select * from user where tel=${tel}`;
+    connection.query(sql, function (error, results) {
+        if (results.length) {
+
+            sql = `select * from cart where uid=${results[0].id}`;
+            connection.query(sql, function (er, re) {
+                res.send({
+                    code: 200,
+                    data: {
+                        success: true,
+                        cartInfo: re
+                    }
+                })
+            })
+        }
+    })
+
 })
 
 //删除购物车商品
@@ -567,6 +605,14 @@ router.post('/api/addOrEditAddress', function (req, res, next) {
 
     let token = req.body.headers.token
     let tokenObjet = jwt.decode(token);
+
+    if(  getTokenLife(tokenObjet.exp) ){
+        res.send({
+            data:{
+                code:1000
+            }
+        })
+    }
 
     let sql = `select * from user where tel=${tokenObjet.tel}`;
     connection.query(sql, function (error, results) {
@@ -638,6 +684,15 @@ router.post('/api/addOrEditAddress', function (req, res, next) {
 router.post('/api/getAddress', function (req, res, next) {
     let token = req.body.headers.token
     let tokenObjet = jwt.decode(token);
+
+    if(  getTokenLife(tokenObjet.exp) ){
+        res.send({
+            data:{
+                code:1000
+            }
+        })
+    }
+
     let tel = tokenObjet.tel;
 
     let sql = `select * from user where tel=${tel}`;
@@ -749,6 +804,153 @@ router.post('/api/updateOrder', function (req, res, next) {
             data:{
                 code:200,
                 success:true
+            }
+        })
+    })
+})
+
+//发起支付宝支付
+router.post('/api/alipay',function (req, res, next) {
+    let order=req.body.data;
+    let price=order.order_price+'';
+    let name=order.product_list;
+    let orderID=order.order_id+'';
+
+    const formData=new AlipayFormData();
+    //返回支付页面的url
+    formData.setMethod('get');
+    //支付信息
+    formData.addField('bizContent', {
+        outTradeNo: orderID,//订单号
+        productCode: 'FAST_INSTANT_TRADE_PAY',//写死的
+        totalAmount: price,//价格
+        subject: name,//商品名称
+    });
+    //支付成功或失败跳转的链接
+    formData.addField('returnUrl','http://192.168.1.48:8080/alipay');
+    //返回promise
+    const result = alipaySdk.exec(
+        'alipay.trade.page.pay',
+        {},
+        { formData: formData },
+    );
+
+    //对接支付宝成功，支付宝返回的数据
+    result.then(resp=>{
+        console.log(resp)
+        res.send({
+            data:{
+                code:200,
+                success:true,
+                msg:'正在支付',
+                paymentUrl:resp
+            }
+        })
+    })
+})
+//获取支付结果
+router.post('/api/payResult',function (req, res, next) {
+    //token
+    let token = req.headers.token;
+    let tokenObj = jwt.decode(token);
+    //订单号
+    let out_trade_no = req.body.out_trade_no;
+    let trade_no = req.body.trade_no;
+    //支付宝配置
+    const formData = new AlipayFormData();
+    // 调用 setMethod 并传入 get，会返回可以跳转到支付页面的 url
+    formData.setMethod('get');
+    //支付时信息
+    formData.addField('bizContent', {
+        out_trade_no,
+        trade_no
+    });
+    //返回promise
+    const result = alipaySdk.exec(
+        'alipay.trade.query',
+        {},
+        { formData: formData },
+    );
+
+    result.then(resData=> {
+        axios({
+            method: 'GET',
+            url: resData
+        }).then(data => {
+            let responseCode = data.data.alipay_trade_query_response;
+            if(  responseCode.code == '10000' ){
+                switch(  responseCode.trade_status  ){
+                    case 'WAIT_BUYER_PAY':
+                        res.send({
+                            data:{
+                                code:0,
+                                data:{
+                                    msg:'支付宝有交易记录，没付款'
+                                }
+                            }
+                        })
+                        break;
+
+                    case 'TRADE_CLOSED':
+                        res.send({
+                            data:{
+                                code:1,
+                                data:{
+                                    msg:'交易关闭'
+                                }
+                            }
+                        })
+                        break;
+
+                    case 'TRADE_FINISHED':
+                        connection.query(`select * from user where tel = ${tokenObj.tel}`,function(error,results){
+                            //用户id
+                            let uid = results[0].id;
+                            connection.query(`select * from store_order where uId = ${uid} and order_id = ${out_trade_no}`,function(err,result){
+                                let id = result[0].id;
+                                //订单的状态修改掉2==》3
+                                connection.query(`update store_order set order_status = replace(order_status,'2','3') where id = ${id}`,function(){
+                                    res.send({
+                                        data:{
+                                            code:2,
+                                            data:{
+                                                msg:'交易完成'
+                                            }
+                                        }
+                                    })
+                                })
+                            })
+                        })
+                        break;
+
+                    case 'TRADE_SUCCESS':
+                        connection.query(`select * from user where tel = ${tokenObj.tel}`,function(error,results){
+                            //用户id
+                            let uid = results[0].id;
+                            connection.query(`select * from store_order where uId = ${uid} and order_id = ${out_trade_no}`,function(err,result){
+                                let id = result[0].id;
+                                //订单的状态修改掉2==》3
+                                connection.query(`update store_order set order_status = replace(order_status,'2','3') where id = ${id}`,function(){
+                                    res.send({
+                                        data:{
+                                            code:2,
+                                            data:{
+                                                msg:'交易成功'
+                                            }
+                                        }
+                                    })
+                                })
+                            })
+                        })
+                        break;
+                }
+            }else if( responseCode.code == '40004' ){
+                res.send({
+                    data:{
+                        code:4,
+                        msg:'交易不存在'
+                    }
+                })
             }
         })
     })

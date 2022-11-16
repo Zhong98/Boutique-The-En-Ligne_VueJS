@@ -66,8 +66,9 @@
 <script>
 import http from '@/common/api/request.js'
 import {mapState,mapGetters,mapMutations} from 'vuex'
-import { RadioGroup, Radio } from 'vant';
+import {RadioGroup, Radio, Toast} from 'vant';
 export default{
+  name:'UserOrder',
   data () {
     return {
       radioPayment:'wx',
@@ -98,6 +99,8 @@ export default{
       })
     },
     submitOrder(){
+      if (!this.address) return Toast('请填写收货地址');
+
       http.$axios({
         url:'/api/updateOrder',
         method:"post",
@@ -109,7 +112,22 @@ export default{
           productList:this.goodsList
         }
       }).then(res=>{
-        console.log(res)
+        if (res.success){
+          http.$axios({
+            url:'/api/alipay',
+            method:'POST',
+            headers:{
+              token:true,
+              'Content-Type': 'application/x-www-form-urlencoded'
+            },
+            data:this.order
+          }).then(r=>{
+            console.log(r)
+            if (r.success){
+              window.location.href=r.paymentUrl
+            }
+          })
+        }
       })
     }
   },

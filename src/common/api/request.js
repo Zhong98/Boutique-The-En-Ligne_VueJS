@@ -48,6 +48,11 @@ export default {
                 headers:options.headers
             }).then(v => {
                 let data = v.data.data;
+                //如果token过期，重新登录
+                if( data.code == 1000 ){
+                    Toast.close();
+                    return router.push('/login');
+                }
                 return new Promise((res, rej) => {
                     if (!v) return rej()
                     setTimeout(() => {
